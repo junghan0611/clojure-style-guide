@@ -1,0 +1,1544 @@
+* The Clojure Style Guide
+:PROPERTIES:
+:CUSTOM_ID: the-clojure-style-guide
+:END:
+
+#+begin_quote
+롤 모델이 중요하다. -- Officer Alex J. Murphy / RoboCop
+
+#+end_quote
+
+이 클로저 스타일 가이드는 모범 사례를 추천하고 있기 때문에 실제 클로저
+개발자들은 다른 클로저 개발자들과도 함께 유지보수가능한 코드를 작성할 수
+있다.
+
+여기 작성된 스타일 가이드는 실제 개발 환경에서 사용하고 있는 스타일을
+기반으로 작성되었다. 또 잘 사용되지 않는 스타일(그게 아무리 좋다고
+할지라도...)을 사용해서 생기는 문제를 개선하려는 사람들에 의해 정리된
+내용을 담고있다.
+
+가이드는 관련있는 규칙으로 묶은 여러개의 섹션으로 나뉘어져있다. 규칙을
+적고나서는 합리적인 근거들을 덧붙이려 노력했다. (당연한 것이라고 가정한
+것들은 생략하는 경우도 있다.)
+
+모든 규칙은 갑자기 솟아난 것이 아니다; 이것들은 모두 소프트웨어
+엔지니어로써의 광대한 내 경력, 클로저커뮤니티의 피드백과 제안, 풍부한
+클로저 프로그래밍 리소스 ([[http://www.clojurebook.com/]["Clojure
+Programming"]] 와 [[http://joyofclojure.com/]["The Joy of Clojure"]]) 이
+뒷받침되어있다.
+
+이 가이드는 계속 진행중이다; 몇 섹션은 없고, 어떤 섹션은 미완성이며,
+몇개의 규칙들은 예가 부족하기도 하다. 몇개의 룰은 명확히 설명할 예가
+없기도 하다. 언젠가 이런 이슈들은 해결될 것이다. --- 일단 지금은
+그렇다는 걸 알고 있으면 된다.
+
+클로저 개발 커뮤니티에서
+[[http://dev.clojure.org/display/community/Library+Coding+Standards][라이브러리를
+위한 코딩 표준]] 목록을 정리하는 것도 주목해라.
+
+이 가이드는 [[http://pandoc.org/][Pandoc]]를 통해 PDF나 HTML로 복사해 갈
+수 있다.
+
+아래 언어로 번역된 가이드가 있다:
+
+- [[https://github.com/totakke/clojure-style-guide/blob/ja/README.md][일본어]]
+- [[https://github.com/kwakbab/clojure-style-guide/blob/master/README-koKO.md][한글]]
+
+** Table of Contents
+:PROPERTIES:
+:CUSTOM_ID: table-of-contents
+:END:
+- [[#소스코드-레이아웃--구조][소스코드 레이아웃 & 구조]]
+- [[#문법][문법]]
+- [[#네이밍][네이밍]]
+- [[#컬렉션][컬렉션]]
+- [[#뮤테이션][뮤테이션]]
+- [[#문자열][문자열]]
+- [[#예외][예외]]
+- [[#매크로][매크로]]
+- [[#주석][주석]]
+  - [[#주석어노테이션][주석어노테이션]]
+- [[#문서화][문서화]]
+- [[#그밖에][그밖에]]
+- [[#도구들][도구들]]
+- [[#테스트][테스트]]
+
+** 소스코드 레이아웃 & 구조
+:PROPERTIES:
+:CUSTOM_ID: 소스코드-레이아웃-구조
+:END:
+
+#+begin_quote
+거의 모든 사람들이 자신의 것을 제외한 모든 코딩 스타일이 번잡하고
+가독성이 떨어진다고 확신한다. 앞문장에서 "자신의 것을 제외한"을 없앤다면
+아마도 맞는 말일지도... -- Jerry Coffin (on indentation)
+
+#+end_quote
+
+-  탭은 들여쓰기 단위별로 *스페이스* 2칸을 사용하라. hard tab사용 안함
+  [[[#two-spaces][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (when something
+    (something-else))
+
+  ;; 나쁜 예 - 4칸 스페이스
+  (when something
+      (something-else))
+  #+end_src
+
+-  함수의 인수는 세로로 줄 맞춤 한다.
+  [[[#vertically-align-fn-args][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (filter even?
+          (range 1 10))
+
+  ;; 나쁜 예
+  (filter even?
+    (range 1 10))
+  #+end_src
+
+-  let이 바인딩하는 것과 map키워드는 세로로 줄맞춤한다.
+  [[[#vertically-align-let-and-map][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (let [thing1 "some stuff"
+        thing2 "other stuff"]
+    {:thing1 thing1
+     :thing2 thing2})
+
+  ;; 나쁜 예
+  (let [thing1 "some stuff"
+    thing2 "other stuff"]
+    {:thing1 thing1
+    :thing2 thing2})
+  #+end_src
+
+-  =defn=을 쓸때 docstring이 없을 때에는, 함수 이름과 인수 벡터를 한줄에
+  써도 좋고, 다음 줄에 나눠서 써도 좋다.
+  [[[#optional-new-line-after-fn-name][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (defn foo
+    [x]
+    (bar x))
+
+  ;; 좋은 예
+  (defn foo [x]
+    (bar x))
+
+  ;; 나쁜 예
+  (defn foo
+    [x] (bar x))
+  #+end_src
+
+-  인수 벡터와 본체가 짧은 함수 사이의 개행은 생략할 수도 있다.
+  [[[#oneline-short-fn][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (defn foo [x]
+    (bar x))
+
+  ;; 짧은 본체를 가진 함수의 좋은 예
+  (defn foo [x] (bar x))
+
+  ;; 다중 인수 함수의 좋은 예
+  (defn foo
+    ([x] (bar x))
+    ([x y]
+      (if (predicate? x)
+        (bar x)
+        (baz x))))
+
+  ;; 나쁜 예
+  (defn foo
+    [x] (if (predicate? x)
+          (bar x)
+          (baz x)))
+  #+end_src
+
+-  여러줄의 docstrings는 들여쓰기한다.
+  [[[#align-docstring-lines][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (defn foo
+    "Hello there. This is
+    a multi-line docstring."
+    []
+    (bar))
+
+  ;; 나쁜 예
+  (defn foo
+    "Hello there. This is
+  a multi-line docstring."
+    []
+    (bar))
+  #+end_src
+
+- / Unix 스타일로 줄바꿈 하라. (/BSD/Solaris/Linux/OS X 사용자들은
+  기본으로 설정되어 있다. Windows 사용자에겐 특히 주의가 필요하다.)
+  [[[#crlf][link]]]
+
+  - 만약 Git을 사용하고 있으면, 다음 설정을 추가함으로써 프로젝트가
+    Windows 줄바꿈 형식으로 강제 설정되는 것을 막을 수 있을 것이다.:
+
+  #+begin_example
+  bash$ git config --global core.autocrlf true
+  #+end_example
+
+-  괄호로 시작되거나(=(=, ={=,=[=), 괄호로 끝나는 (=)=, =}= , =]=)
+  텍스트가 있으면 다른 텍스트와 공백으로 분리해라. 반대로, 괄호 바로
+  뒤와 바로 앞은 괄호와 텍스트 사이에 공백을 남기지 마라 .
+  [[[#bracket-spacing][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (foo (bar baz) quux)
+
+  ;; 나쁜 예
+  (foo(bar baz)quux)
+  (foo ( bar baz ) quux)
+  #+end_src
+
+#+begin_quote
+사람이 이해하기 쉬운 언어 문법은 세미콜론 암을 유발한다. -- Alan Perlis
+
+#+end_quote
+
+-  순서가 있는 콜렉션 리터럴의 엘리먼트 사이에 콤마를 사용하지 마라.
+  [[[#no-commas-for-seq-literals][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  [1 2 3]
+  (1 2 3)
+
+  ;; 나쁜 예
+  [1, 2, 3]
+  (1, 2, 3)
+  #+end_src
+
+-  맵 리터럴 사용시 적절한 줄바꿈이나 콤마를 통해 가독성을 높이는데에
+  신경써라. [[[#opt-commas-in-map-literals][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  {:name "Bruce Wayne" :alter-ego "Batman"}
+
+  ;; 좋은 예, 확실히 더 읽기 좋다.
+  {:name "Bruce Wayne"
+   :alter-ego "Batman"}
+
+  ;; 좋은 예, 좀 더 간결하다.
+  {:name "Bruce Wayne", :alter-ego "Batman"}
+  #+end_src
+
+-  마지막에 따라오는 괄호들은 따로 다른 줄에 놓지 않고 한 줄에 함께
+  써라. [[[#gather-trailing-parens][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예; 한 줄
+  (when something
+    (something-else))
+
+  ;; 나쁜 예; 구분된 줄
+  (when something
+    (something-else)
+  )
+  #+end_src
+
+-  최상위의 구문들 사이에는 빈 줄을 넣어라.
+  [[[#empty-lines-between-top-level-forms][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (def x ...)
+
+  (defn foo ...)
+
+  ;; 나쁜 예
+  (def x ...)
+  (defn foo ...)
+  #+end_src
+
+  관련있는 =def=들을 붙여쓰는 것은 예외다.
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (def min-rows 10)
+  (def max-rows 20)
+  (def min-cols 15)
+  (def max-cols 30)
+  #+end_src
+
+-  함수나 매크로 정의 중간에 빈 줄을 넣지 마라. 짝을 이루는 구조를
+  표현할 때는 예외다. (예: =let=,=cond= 사용시)
+  [[[#no-blank-lines-within-def-forms][link]]]
+
+-  가능하면, 한 줄이 80글자 이상되는 것은 피해라.
+  [[[#80-character-limits][link]]]
+
+-  맨뒤의 공백은 피해라. [[[#no-trailing-whitespace][link]]]
+
+-  한 개의 네임스페이스에는 한 개의 파일을 사용해라.
+  [[[#one-file-per-namespace][link]]]
+
+-  모든 네임스페이스는 포괄적인 의미가 있는 =ns=구문으로 시작해라.
+  =ns=는 =import=,=require=,=refer=,=use= 등으로 구성된다.
+  [[[#comprehensive-ns-declaration][link]]]
+
+  #+begin_src clojure
+  (ns examples.ns
+    (:refer-clojure :exclude [next replace remove])
+    (:require [clojure.string :as s :refer [blank?]]
+              [clojure.set :as set]
+              [clojure.java.shell :as sh])
+    (:use [clojure xml zip])
+    (:import java.util.Date
+             java.text.SimpleDateFormat
+             [java.util.concurrent Executors
+                                   LinkedBlockingQueue]))
+  #+end_src
+
+-  ns 매크로 사용시 =:use=보다 =:require :refer :all=사용을 권장한다.
+  [[[#prefer-require-over-use][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (ns examples.ns
+    (:require [clojure.zip :refer :all]))
+
+  ;; 나쁜 예
+  (ns examples.ns
+    (:use clojure.zip))
+  #+end_src
+
+-  하나로 구분된 네임스페이스는 피해라.
+  [[[#no-single-segment-namespaces][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (ns example.ns)
+
+  ;; 나쁜 예
+  (ns example)
+  #+end_src
+
+-  너무 긴 네임스페이스는 피해라 (예: 5개 이상으로 이루어진
+  네임스페이스는 피해라.) [[[#namespaces-with-5-segments-max][link]]]
+
+-  10줄이 넘는 함수는 피해라. 이상적으로 모든 함수는 5줄보다 적어야한다.
+  [[[#10-loc-per-fn-limit][link]]]
+
+-  3개이상의 파라미터와 함께 쓰는 리스트나 4개 연속의 파라미터는 피하라.
+  [[[#4-positional-fn-params-limit][link]]]
+
+** 문법
+:PROPERTIES:
+:CUSTOM_ID: 문법
+:END:
+-  =require=, =refer=와 같이 네임스페이스를 처리하는 함수의 사용을
+  피하자. REPL 환경 밖에서 전혀 필요하지 않다.
+  [[[#ns-fns-only-in-repl][link]]]
+
+-  이 후의 참조에 대해서 =declare=을 사용하자. [[[#declare][link]]]
+
+-  =loop/recur=보다 =map=과 같은 고차함수를 사용하자.
+  [[[#higher-order-fns][link]]]
+
+-  함수 내부에 확인할 조건이 있을 때 pre와 post 함수를 사용하자.
+  [[[#pre-post-conditions][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (defn foo [x]
+    {:pre [(pos? x)]}
+    (bar x))
+
+  ;; 나쁜 예
+  (defn foo [x]
+    (if (pos? x)
+      (bar x)
+      (throw (IllegalArgumentException "x must be a positive number!")))
+  #+end_src
+
+-  함수 안에 var를 선언하지 말자. [[[#dont-def-vars-inside-fns][link]]]
+
+  #+begin_src clojure
+  ;; 매우 나쁜 예
+  (defn foo []
+    (def x 5)
+    ...)
+  #+end_src
+
+-  내부 바인딩으로 =clojure.core=의 이름을 사용하지 말자.
+  [[[#dont-shadow-clojure-core][link]]]
+
+  #+begin_src clojure
+  ;; 나쁜 예 - 내부에 clojure.core/map 사용을 강제한다.
+  (defn foo [map]
+    ...)
+  #+end_src
+
+-  시퀀스가 비어있을 때 종료하는 조건에는 =seq=를 사용하자. (이 기술은
+  종종 /nil punning/이라 불린다.) [[[#nil-punning][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (defn print-seq [s]
+    (when (seq s)
+      (prn (first s))
+      (recur (rest s))))
+
+  ;; 나쁜 예
+  (defn print-seq [s]
+    (when-not (empty? s)
+      (prn (first s))
+      (recur (rest s))))
+  #+end_src
+
+-  =(if ... (do ...)= 대신 =when=을 사용하자.
+  [[[#when-instead-of-single-branch-if][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (when pred
+    (foo)
+    (bar))
+
+  ;; 나쁜 예
+  (if pred
+    (do
+      (foo)
+      (bar)))
+  #+end_src
+
+-  =let= + =if= 대신 =if-let=을 사용하자. [[[#if-let][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (if-let [result (foo x)]
+    (something-with result)
+    (something-else))
+
+  ;; 나쁜 예
+  (let [result (foo x)]
+    (if result
+      (something-with result)
+      (something-else)))
+  #+end_src
+
+-  =let= + =when= 대신 =when-let=을 사용하자. [[[#when-let][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (when-let [result (foo x)]
+    (do-something-with result)
+    (do-something-more-with result))
+
+  ;; 나쁜 예
+  (let [result (foo x)]
+    (when result
+      (do-something-with result)
+      (do-something-more-with result)))
+  #+end_src
+
+-  =(if (not ...) ...)= 대신 =if-not=을 사용하자.. [[[#if-not][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (if-not (pred)
+    (foo))
+
+  ;; 나쁜 예
+  (if (not pred)
+    (foo))
+  #+end_src
+
+-  =(when (not ...) ...)= 대신 =when-not=을 사용하자.
+  [[[#when-not][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (when-not pred
+    (foo)
+    (bar))
+
+  ;; 나쁜 예
+  (when (not pred)
+    (foo)
+    (bar))
+  #+end_src
+
+-  =(if-not ... (do ...)= 대신 =when-not=을 사용하자.
+  [[[#when-not-instead-of-single-branch-if-not][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (when-not pred
+    (foo)
+    (bar))
+
+  ;; 나쁜 예
+  (if-not pred
+    (do
+      (foo)
+      (bar)))
+  #+end_src
+
+-  =(not (= ...))= 대신 =not==을 사용하자. [[[#not-equal][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (not= foo bar)
+
+  ;; 나쁜 예
+  (not (= foo bar))
+  #+end_src
+
+-  비교할 때, 클로저의 =<=, =>=, 기타 함수 들은 여러 개의 인수를 받을 수
+  있다는 점을 명심하자. [[[#multiple-arity-of-gt-and-ls-fns][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (< 5 x 10)
+
+  ;; 나쁜 예
+  (and (> x 5) (< x 10))
+  #+end_src
+
+-  함수 리터럴 안에서 하나의 파라미터를 받는 경우에는 =%1= 보다 =%=를
+  사용하자. [[[#single-param-fn-literal][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  #(Math/round %)
+
+  ;; 나쁜 예
+  #(Math/round %1)
+  #+end_src
+
+-  함수 리터럴 안에서 여러 개의 파라미터를 받는 경우에는 =%= 보다 =%1=를
+  사용하자. [[[#multiple-params-fn-literal][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  #(Math/pow %1 %2)
+
+  ;; 나쁜 예
+  #(Math/pow % %2)
+  #+end_src
+
+-  불필요하게 익명함수로 감싸지 말자.
+  [[[#no-useless-anonymous-fns][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (filter even? (range 1 10))
+
+  ;; 나쁜 예
+  (filter #(even? %) (range 1 10))
+  #+end_src
+
+-  함수 바디가 여러개의 구문으로 구성되는 경우 함수 리터럴을 사용하지
+  말자. [[[#no-multiple-forms-fn-literals][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (fn [x]
+    (println x)
+    (* x 2))
+
+  ;; 나쁜 예 ( 명시적으로 do 구문이 필요하다.)
+  #(do (println %)
+       (* % 2))
+  #+end_src
+
+-  익명함수의 사용보다 =complement= 함수를 사용하자.
+  [[[#complement][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (filter (complement some-pred?) coll)
+
+  ;; 나쁜 예
+  (filter #(not (some-pred? %)) coll)
+  #+end_src
+
+  분리함수의 폼 안에 여집합 속성이 있는 경우 이 규칙은 무시하자
+  (e.g. =even?= and =odd?=).
+
+-  코드가 더 간단해 질 수 있다면 =comp=를 활용한다. [[[#comp][link]]]
+
+  #+begin_src clojure
+  ;; `(:require [clojure.string :as str])`이 되었다고 가정...
+
+  ;; 좋은 예
+  (map #(str/capitalize (str/trim %)) ["top " " test "])
+
+  ;; 더 좋은 예
+  (map (comp str/capitalize str/trim) ["top " " test "])
+  #+end_src
+
+-  코드가 더 간단해 질 수 있다면 =partial=을 활용한다.
+  [[[#partial][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (map #(+ 5 %) (range 1 10))
+
+  ;; (틀림없이) 좋은 예
+  (map (partial + 5) (range 1 10))
+  #+end_src
+
+-  구문이 지나치게 중첩되어 있을 때는 쓰레딩 매크로를 권장한다. (=->=
+  (thread-first) 와 =->>=(thread-last)) [[[#threading-macros][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (-> [1 2 3]
+      reverse
+      (conj 4)
+      prn)
+
+  ;; 좋지 않은 예
+  (prn (conj (reverse [1 2 3])
+             4))
+
+  ;; 좋은 예
+  (->> (range 1 10)
+       (filter even?)
+       (map (partial * 2)))
+
+  ;; 좋지 않은 예
+  (map (partial * 2)
+       (filter even? (range 1 10)))
+  #+end_src
+
+-  =cond=에서 모든 경우의 조건표현식을 처리할 때는 =:else= 키워드를
+  쓴다. [[[#else-keyword-in-cond][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (cond
+    (neg? n) "negative"
+    (pos? n) "positive"
+    :else "zero"))
+
+  ;; 나쁜 예
+  (cond
+    (neg? 0) "negative"
+    (pos? 0) "positive"
+    true "zero"))
+  #+end_src
+
+-  비교하려는 값과 조건이 바뀌지 않을 때는 =cond=보다 =condp=를 써라.
+  [[[#condp][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (cond
+    (= x 10) :ten
+    (= x 20) :twenty
+    (= x 30) :thirty
+    :else :dunno)
+
+  ;; 훨씬 좋은 예
+  (condp = x
+    10 :ten
+    20 :twenty
+    30 :thirty
+    :dunno)
+  #+end_src
+
+-  조건표현식이 상수일 때 =cond=나 =condp=보다 =case=를 권장한다.
+  [[[#case][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (cond
+    (= x 10) :ten
+    (= x 20) :twenty
+    (= x 30) :forty
+    :else :dunno)
+
+  ;; 더 좋은 예
+  (condp = x
+    10 :ten
+    20 :twenty
+    30 :forty
+    :dunno)
+
+  ;; 가장 좋은 예
+  (case x
+    10 :ten
+    20 :twenty
+    30 :forty
+    :dunno)
+  #+end_src
+
+-  =cond=와 관련된 곳에서 짧은 폼을 써라. 불가능하다면 주석이나 빈 줄
+  등으로 쌍이 잘 구분되도록 힌트를 주자. [[[#shor-forms-in-cond][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (cond
+    (test1) (action1)
+    (test2) (action2)
+    :else   (default-action))
+
+  ;; 괜찮은 예
+  (cond
+    ;; test case 1
+    (test1)
+    (long-function-name-which-requires-a-new-line
+      (complicated-sub-form
+        (-> 'which-spans
+            multiple-lines)))
+
+    (test2)
+    (another-very-long-function-name
+      (yet-another-sub-form
+        (-> 'which-spans
+            multiple-lines)))
+
+    :else
+    (the-fall-through-default-case
+      (which-also-spans 'multiple
+                        'lines)))
+  #+end_src
+
+-  참이나 거짓을 판단하는 구문 대신에, =set= 사용할 수 있다면 그렇게
+  하라. [[[#set-as-predicate][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (remove #{0} [0 1 2 3 4 5])
+
+  ;; 나쁜 예
+  (remove #(= % 0) [0 1 2 3 4 5])
+
+  ;; 좋은 예
+  (count (filter #{\a \e \i \o \u} "mary had a little lamb"))
+
+  ;; 나쁜 예
+  (count (filter #(or (= % \a)
+                      (= % \e)
+                      (= % \i)
+                      (= % \o)
+                      (= % \u))
+                 "mary had a little lamb"))
+  #+end_src
+
+-  =(+ x 1)= and =(- x 1)= 대신 =(inc x)= & =(dec x)=를 사용한다.\\
+  [[[#inc-and-dec][link]]]
+
+-  =(> x 0)=, =(< x 0)= & =(= x 0)= 대신 =(pos? x)=, =(neg? x)= &
+  =(zero? x)=를 사용한다. [[[#pos-and-neg][link]]]
+
+-  중첩된 =cons= 대신 =list*=를 사용한다.
+  [[[#list-star-instead-of-nested-cons][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (list* 1 2 3 [4 5])
+
+  ;;나쁜 예
+  (cons 1 (cons 2 (cons 3 [4 5])))
+  #+end_src
+
+-  자바를 사용할 때는 줄인 문법을 사용한다.
+  [[[#sugared-java-interop][link]]]
+
+  #+begin_src clojure
+  ;;; 객체 생성
+  ;; 좋은 예
+  (java.util.ArrayList. 100)
+
+  ;; 나쁜 예
+  (new java.util.ArrayList 100)
+
+  ;;; 정적 메서드 사용
+  ;; 좋은 예
+  (Math/pow 2 10)
+
+  ;; 나쁜 예
+  (. Math pow 2 10)
+
+  ;;; 인스턴스 메서드 사용
+  ;; 좋은 예
+  (.substring "hello" 1 3)
+
+  ;; 나쁜 예
+  (. "hello" substring 1 3)
+
+  ;;; 정적 필드 사용
+  ;; 좋은 예
+  Integer/MAX_VALUE
+
+  ;; 나쁜 예
+  (. Integer MAX_VALUE)
+
+  ;;; 인스턴스 필드 사용
+  ;; 좋은 예
+  (.someField some-object)
+
+  ;; 나쁜 예
+  (. some-object someField)
+  #+end_src
+
+-  키워드와 true 값을 가지는 메타데이터는 리더매크로를 사용해서 짧게
+  줄여 쓴다. [[[#compact-metadata-notation-for-true-flags][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (def ^:private a 5)
+
+  ;; 나쁜 예
+  (def ^{:private true} a 5)
+  #+end_src
+
+-  비공개 코드는 표시를 해라. [[[#private][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (defn- private-fun [] ...)
+
+  (def ^:private private-var ...)
+
+  ;; 나쁜 예
+  (defn private-fun [] ...) ; 비공개가 아님
+
+  (defn ^:private private-fun [] ...) ; 장황하다.
+
+  (def private-var ...) ; 비공개가 아님
+  #+end_src
+
+-  메타데이터를 붙일 때는 어디에 붙일지 주의해서 사용해라.
+  [[[#attach-metadata-carefully][link]]]
+
+  #+begin_src clojure
+  ;; `a`의 var 참조에 메타데이터를 붙인다.
+  (def ^:private a {})
+  (meta a) ;=> nil
+  (meta #'a) ;=> {:private true}
+
+  ;; 빈 해시값에 메타데이터를 붙인다.
+  (def a ^:private {})
+  (meta a) ;=> {:private true}
+  (meta #'a) ;=> nil
+  #+end_src
+
+** 네이밍
+:PROPERTIES:
+:CUSTOM_ID: 네이밍
+:END:
+
+#+begin_quote
+프로그래밍에서 가장 어려운 것은 캐시 무효화하는 것과 네이밍이다. -- Phil
+Karlton
+
+#+end_quote
+
+-  네임스페이스에 대한 네이밍은 다음 두가지 방법 중 하나를 사용하는 것이
+  좋다: [[[#ns-naming-schemas][link]]]
+
+  - =project.module=
+  - =organization.project.module=
+
+-  네임스페이스의 단어 구분은 =lisp-case=를 사용한다.(예
+  =bruce.project-euler=) [[[#lisp-case-ns][link]]]
+
+-  함수와 변수는 =lisp-case=를 사용한다. [[[#lisp-case][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (def some-var ...)
+  (defn some-fun ...)
+
+  ;; 나쁜 예
+  (def someVar ...)
+  (defn somefun ...)
+  (def some_fun ...)
+  #+end_src
+
+-  프로토콜, 레코드, 구조체, 타입에는 =CamelCase=를 사용한다. (HTTP,
+  RFC, XML과 같은 약자는 대문자를 사용한다.)
+  [[[#CamelCase-for-protocols-records-structs-and-types][link]]]
+
+-  참이나 거짓을 리턴하는 함수의 이름 끝에는 물음표를 붙인다. (예.,
+  =even?=). [[[#pred-with-question-mark][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (defn palindrome? ...)
+
+  ;; 나쁜 예
+  (defn palindrome-p ...) ; Common Lisp 스타일
+  (defn is-palindrome ...) ; 자바 스타일
+  #+end_src
+
+-  STM 트랜젝션에 안전하지 않은 함수나 매크로 이름 뒤에는 느낌표를
+  붙인다. (예. =reset!=).
+  [[[#changing-state-fns-with-exclamation-mark][link]]]
+
+-  변환 함수 이름에 있는 =to= 대신 =->=를 사용한다.
+  [[[#arrow-instead-of-to][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (defn f->c ...)
+
+  ;; 좋지 않음
+  (defn f-to-c ...)
+  #+end_src
+
+-  바인딩이 여러번 될 수 있을 때는 (즉, 다이나믹인 경우), 이름 양쪽에
+  =*=표시를 해준다. [[[#earmuffs-for-dynamic-vars][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (def ^:dynamic *a* 10)
+
+  ;; 나쁜 예
+  (def ^:dynamic a 10)
+  #+end_src
+
+-  상수 값은 특별한 표시를 하지 않는다; 특별한 표시가 없으면 모든 것이
+  상수라고 가정한다. [[[#dont-flag-constants][link]]]
+
+-  사용하지 않는 인수 이름은 =_=로 디스트럭처링을 해준다.
+  [[[#underscore-for-unused-bindings][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (let [[a b _ c] [1 2 3 4]]
+    (println a b c))
+
+  (dotimes [_ 3]
+    (println "Hello!"))
+
+  ;; 나쁜 예
+  (let [[a b c d] [1 2 3 4]]
+    (println a b d))
+
+  (dotimes [i 3]
+    (println "Hello!"))
+  #+end_src
+
+-  =pred=와 =coll=과 같은 =clojure.core=에서 사용된 관용어를 사용한다.
+  [[[#idiomatic-names][link]]]
+
+  - 함수 안에서:
+    - =f=, =g=, =h= - 함수 값
+    - =n= - 크기 같은 숫자 값
+    - =index= - 숫자 인덱스
+    - =x=, =y= - 숫자
+    - =xs= - 시퀀스
+    - =m= - 맵
+    - =s= - 문자열 입력
+    - =re= - 정규식 표현
+    - =coll= - 컬렉션
+    - =pred= - 참이나 거짓을 리턴하는 함수
+    - =& more= - 가변 인자
+    - =xf= - 트랜스듀서에 xform
+  - in macros:
+    - =expr= - 표현식
+    - =body= - 바디
+    - =binding= - 매크로 바인딩 벡터
+
+** 컬렉션
+:PROPERTIES:
+:CUSTOM_ID: 컬렉션
+:END:
+
+#+begin_quote
+10개의 데이터 구조를 10개의 함수로 조작하는 것 보다 1개의 데이터 구조를
+100개의 함수로 조작하는 것이 낫다. -- Alan J. Perlis (최초의 튜링상
+수상자)
+
+#+end_quote
+
+-  꼭 필요한 경우를 제외하고 제너릭(특정 타입을 가지는) 데이터를 가지는
+  리스트는 사용하지 않는다. [[[#avoid-lists][link]]]
+
+-  해시 키는 키워드를 권장한다. [[[#keywords-for-hash-keys][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  {:name "Bruce" :age 30}
+
+  ;; 나쁜 예
+  {"name" "Bruce" "age" 30}
+  #+end_src
+
+-  가능하면 리터럴 컬렉션 문법을 권장한다. 다만 set을 정의할 때는 컴파일
+  타임에 값이 정해져 있는 경우에만 리터럴 문법을 사용한다.
+  [[[#literal-col-syntax][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  [1 2 3]
+  #{1 2 3}
+  (hash-set (func1) (func2)) ; 런타임에 값이 결정된다.
+
+  ;; 나쁜 예
+  (vector 1 2 3)
+  (hash-set 1 2 3)
+  #{(func1) (func2)} ; (func1)와 (func2)의 값이 같다면 예외가 발생한다.
+  #+end_src
+
+-  가능하면 인덱스를 사용하여 컬렉션에 접근하는 것을 피한다.
+  [[[#avoid-index-based-coll-access][link]]]
+
+-  가능하면 맵에서 값을 가져올 때 키워드를 함수처럼 사용하는 것을
+  권장한다. [[[#keywords-as-fn-to-get-map-values][link]]]
+
+  #+begin_src clojure
+  (def m {:name "Bruce" :age 30})
+
+  ;; 좋은 예
+  (:name m)
+
+  ;; 필요 이상으로 많은 단어를 사용한다.
+  (get m :name)
+
+  ;; 나쁜 예 - NullPointerException이 발생 할 가능성이 있다.
+  (m :name)
+  #+end_src
+
+-  컬렉션은 컬렉션의 항목을 가져오는 함수라는 사실을 잊지 말자.
+  [[[#colls-as-fns][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (filter #{\a \e \o \i \u} "this is a test")
+
+  ;; 나쁜 예 - 공유하기에는 너무 구리다.
+  #+end_src
+
+-  키워드는 함수로 사용할 수 있다는 사실을 잊지 말자.
+  [[[#keywords-as-fns][link]]]
+
+  #+begin_src clojure
+  ((juxt :a :b) {:a "ala" :b "bala"})
+  #+end_src
+
+-  성능상의 이유가 아니면 transient 컬렉션 사용을 피한다.
+  [[[#avoid-transient-colls][link]]]
+
+-  자바 컬렉션 사용을 피한다. [[[#avoid-java-colls][link]]]
+
+-  자바 배열 사용을 피한다. 단 자바와 상호작용이 필요하거나 기본 타입을
+  많이 다뤄서 성능에 영향을 주는 경우는 제외한다.
+  [[[#avoid-java-arrays][link]]]
+
+** 뮤테이션
+:PROPERTIES:
+:CUSTOM_ID: 뮤테이션
+:END:
+*** 레퍼런스
+:PROPERTIES:
+:CUSTOM_ID: 레퍼런스
+:END:
+-  트랜젝션 안에서 뜻하지 않는 반복 실행을 피하기 위해서 모든 I/O 호출에
+  =io!= 매크로를 사용해서 감싸는 것을 검토한다.
+  [[[#refs-io-macro][link]]]
+
+-  가능하면 =ref-set= 사용을 피한다. [[[#refs-avoid-ref-set][link]]]
+
+  #+begin_src clojure
+  (def r (ref 0))
+
+  ;; 좋은 예
+  (dosync (alter r + 5))
+
+  ;; 나쁜 예
+  (dosync (ref-set r 5))
+  #+end_src
+
+-  트랜젝션의 크기(안에 있는 기능의 수)는 작으면 작을 수록 좋다.
+  [[[#refs-small-transactions][link]]]
+
+-  같은 레퍼러스를 사용하는 긴 트랜젝션과 짧은 트랜젝션을 함께 사용하는
+  것을 피한다.
+  [[[#refs-avoid-short-long-transactions-with-same-ref][link]]]
+
+*** 에이전트
+:PROPERTIES:
+:CUSTOM_ID: 에이전트
+:END:
+-  CPU bound와 블럭되지 않는 I/O, 다른 쓰레드에만 =send=를 사용한다.
+  [[[#agents-send][link]]]
+
+-  블럭이 될지 모르거나 Sleep되거나 스레드가 오랫동안 작업할 것 같은
+  곳에는 =send-off=를 사용한다. [[[#agents-send-off][link]]]
+
+*** 애텀
+:PROPERTIES:
+:CUSTOM_ID: 애텀
+:END:
+-  STM 트랜젝션 안에서 애텀이 변경 되는 것을 피한다.
+  [[[#atoms-no-update-within-transactions][link]]]
+
+-  가능하면 =reset!=보다 =swap!=을 사용한다.
+  [[[#atoms-prefer-swap-over-reset][link]]]
+
+  #+begin_src clojure
+  (def a (atom 0))
+
+  ;; 좋은 예
+  (swap! a + 5)
+
+  ;; 그리 좋지 않음
+  (reset! a 5)
+  #+end_src
+
+** 문자열
+:PROPERTIES:
+:CUSTOM_ID: 문자열
+:END:
+-  문자열을 다루는 함수들은 자바에 있는 함수나 스스로 만드는 것보다는
+  =clojure.string=의 함수를 쓰는 것이 좋다.
+  [[[#prefer-clojure-string-over-interop][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (clojure.string/upper-case "bruce")
+
+  ;; 나쁜 예
+  (.toUpperCase "bruce")
+  #+end_src
+
+** 예외
+:PROPERTIES:
+:CUSTOM_ID: 예외
+:END:
+-  가능하면 자바에 있는 예외 타입을 사용하라. 기본 타입(예.
+  =java.lang.IllegalArgumentException=,
+  =java.lang.UnsupportedOperationException=,
+  =java.lang.IllegalStateException=, =java.io.IOException=)의 예외를
+  던지는 것이 일반적인 클로저 코드이다.
+  [[[#reuse-existing-exception-types][link]]]
+
+-  =finally=보다는 =with-open=을 권장한다.
+  [[[#prefer-with-open-over-finally][link]]]
+
+** 매크로
+:PROPERTIES:
+:CUSTOM_ID: 매크로
+:END:
+-  함수로 가능한 것을 매크로로 만들지 마라.
+  [[[#dont-write-macro-if-fn-will-do][link]]]
+
+-  매크로 다음에 매크로를 생성하는 예제를 만들어라.
+  [[[#write-macro-usage-before-writing-the-macro][link]]]
+
+-  복잡한 매크로는 가능하다면 좀더 작은 함수들로 분리하라.
+  [[[#break-complicated-macros][link]]]
+
+-  매크로는 깔끔한 문법을 제공해야 하고 구현이 의존성 없는 함수로
+  이루어져아한다. 그래야 재사용성을 향상시킬 수 있다.
+  [[[#macros-as-syntactic-sugar][link]]]
+
+-  그냥 매크로를 작성하는 것 보다 Syntax-quoted 구문을 사용을 권장한다.
+  [[[#syntax-quoted-forms][link]]]
+
+** 주석
+:PROPERTIES:
+:CUSTOM_ID: 주석
+:END:
+
+#+begin_quote
+좋은 코드는 그 자체가 좋은 문서이다. 주석을 달기 전에 스스로에게
+물어봐라, "어떻게 하면 이 주석이 필요없게 코드를 개선할 수 있을까?"
+코드를 개선해서 문서처럼 보이게 하는 것이다. -- Steve McConnell
+
+#+end_quote
+
+-  가능하면 코드가 스스로 문서화가 될 수 있도록 노력한다.
+  [[[#self-documenting-code][link]]]
+
+-  제목을 나타내는 주석은 최소한 4개의 세미콜론을 사용하여 작성한다.
+  [[[#four-semicolons-for-heading-comments][link]]]
+
+-  소개를 나타내는 주석은 3개의 세미콜론을 사용하여 작성한다.
+  [[[#three-semicolons-for-top-level-comments][link]]]
+
+-  코드의 특정 부분을 설명하는 주석은 그 코드와 들여쓰기를 맞추고
+  세미콜론 2개를 사용하여 작성한다.
+  [[[#two-semicolons-for-code-fragment][link]]]
+
+-  코드의 끝에 오는 주석은 세미콜론 하나를 사용해서 작성한다.
+  [[[#one-semicolon-for-margin-comments][link]]]
+
+-  세미콜론과 주석 내용은 항상 최소 한개의 공백을 두고 작성한다.
+  [[[#semicolon-space][link]]]
+
+  #+begin_src clojure
+  ;;;; Frob Grovel
+
+  ;;; This section of code has some important implications:
+  ;;;   1. Foo.
+  ;;;   2. Bar.
+  ;;;   3. Baz.
+
+  (defn fnord [zarquon]
+    ;; If zob, then veeblefitz.
+    (quux zot
+          mumble             ; Zibblefrotz.
+          frotz))
+  #+end_src
+
+-  한 단어 이상의 주석은 대문자로 시작하고 마침표를 사용한다. 문장의
+  구분은 [[http://en.wikipedia.org/wiki/Sentence_spacing][공백하나]]를
+  사용한다. [[[#english-syntax][link]]]
+
+-  쓸데없는 주석은 피한다. [[[#no-superfluous-comments][link]]]
+
+  #+begin_src clojure
+  ;; 나쁜 예
+  (inc counter) ; increments counter by one
+  #+end_src
+
+-  주석은 항상 최신 상태로 유지한다. 업데이트 되지 않은 주석은 없는 게
+  좋다. [[[#comment-upkeep][link]]]
+
+-  구문을 유지해야하는 경우에는 주석 보다는 =#_= 리더 매크로 사용을
+  권장한다. [[[#dash-underscore-reader-macro][link]]]
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (+ foo #_(bar x) delta)
+
+  ;; 나쁜 예
+  (+ foo
+     ;; (bar x)
+     delta)
+  #+end_src
+
+#+begin_quote
+좋은 코드는 좋은 농담과 같다 - 설명이 필요없다. -- Russ Olsen
+
+#+end_quote
+
+-  나쁜 코드에 대해 설명하는 주석은 피한다. 스스로 문서화가 될 수 있도록
+  코드를 리팩토링한다. (하거나 안하거나 둘 중 하나다. - '시험삼아
+  한다'는 것은 없다. -- Yoda) [[[#refactor-dont-comment][link]]]
+
+*** 주석어노테이션
+:PROPERTIES:
+:CUSTOM_ID: 주석어노테이션
+:END:
+-  어노테이션은 관련된 코드 바로 위에 작성한다.
+  [[[#annotate-above][link]]]
+
+-  어노테이션 키워드는 콜론과 공백 다음에 설명을 작성한다.
+  [[[#annotate-keywords][link]]]
+
+-  만약 설명이 여러줄인 경우 다음 줄은 설명의 첫번째와 들여쓰기를
+  맞춘다. [[[#indent-annotations][link]]]
+
+-  주석에 관련된 날짜를 태그형식으로 달면 나중에 쉽게 확인 할 수 있다.
+  [[[#sing-and-date-annotations][link]]]
+
+  #+begin_src clojure
+  (defn some-fun
+    []
+    ;; FIXME: This has crashed occasionally since v1.2.3. It may
+    ;;        be related to the BarBazUtil upgrade. (xz 13-1-31)
+    (baz))
+  #+end_src
+
+-  설명이 명확하지 않고 중복되는 경우 예외적으로 라인 뒷쪽에
+  어노테이션을 작성합니다. (규칙은 아님)
+  [[[#rare-eol-annotations][link]]]
+
+  #+begin_src clojure
+  (defn bar
+    []
+    (sleep 100)) ; OPTIMIZE
+  #+end_src
+
+-  =TODO=는 구현되지 않은 기능을 나중에 추가해야할 때 사용한다.
+  [[[#todo][link]]]
+
+-  =FIXME=는 코드가 잘못되어서 고쳐야할 때 사용한다. [[[#fixme][link]]]
+
+-  =OPTIMIZE=는 코드가 느리거나 비효율적이라서 성능상 문제가 생기는
+  경우에 사용한다. [[[#optimize][link]]]
+
+-  =HACK=은 코드에 냄새가 나는 것 같아 리팩토링이 필요한 경우 사용한다.
+  [[[#hack][link]]]
+
+-  =REVIEW=는 의도한대로 동작하는지 확인해야하는 경우에 사용한다. 예:
+
+  #+begin_example
+  `REVIEW: Are we sure this is how the client does X currently?``
+  #+end_example
+
+  [[[#review][link]]]
+
+-  다른 어노테이션 키워들은 필요에 따라 작성하고 =README= 같은 곳에
+  정리해둔다. [[[#document-annotations][link]]]
+
+** 문서화
+:PROPERTIES:
+:CUSTOM_ID: 문서화
+:END:
+Docstring은 클로저 코드를 문서화하는 기본적인 방법이다. 여러 정의 구문은
+docstring을 지원하고 (예: =def=, =defn=, =defmacro=, =ns=) var가 공개든
+비공개든 상관 없이 docstring을 잘 사용하는 것이 좋다.
+
+Docstring을 지원하지 않는 경우에는 =:doc= 메타데이터 속성에 추가하면
+된다.
+
+이 장은 클로저 코드를 문서화하는 일반적인 컨벤션과 잘 사용한 예를
+다룬다.
+
+-  만약 구문이 docstring을 직접 지원하면 =:doc= 메타데이터를 사용하기
+  보다 직접 지원하는 docstring을 사용한다.
+  [[[#prefer-docstrings][link]]]
+
+#+begin_src clojure
+;; 좋은 예
+(defn foo
+  "This function doesn't do much."
+  []
+  ...)
+
+(ns foo.bar.core
+  "That's an awesome library.")
+
+;; 나쁜 예
+(defn foo
+  ^{:doc "This function doesn't do much."}
+  []
+  ...)
+
+(ns ^{:doc "That's an awesome library.")
+  foo.bar.core)
+#+end_src
+
+-  docstring의 첫번째 줄은 대문자로 시작하며 var를 간결하게 설명하는
+  완전한 문장으로 작성한다. 그렇게 하면 Clojure 에디터나 IDE 같은 툴의
+  다양한 곳에서 쉽게 docstring 요약을 보여줄 수 있다.
+  [[[#docstring-summary][link]]]
+
+#+begin_src clojure
+;; 좋은 예
+(defn frobnitz
+  "This function does a frobnitz.
+  It will do gnorwatz to achieve this, but only under certain
+  cricumstances."
+  []
+  ...)
+
+;; 나쁜 예
+(defn frobnitz
+  "This function does a frobnitz. It will do gnorwatz to
+  achieve this, but only under certain cricumstances."
+  []
+  ...)
+#+end_src
+
+-  모든 위치의 인자를 문서화하고 백틱(`)으로 감싼다. 그래야 에디터나
+  IDE가 인식해서 잠재적 추가 기능을 제공할 수 있다.
+  [[[#document-pos-arguments][link]]]
+
+#+begin_src clojure
+;; 좋은 예
+(defn watsitz
+  "Watsitz takes a `frob` and converts it to a znoot.
+  When the `frob` is negative, the znoot becomes angry."
+  [frob]
+  ...)
+
+;; 나쁜 예
+(defn watsitz
+  "Watsitz takes a frob and converts it to a znoot.
+  When the frob is negative, the znoot becomes angry."
+  [frob]
+  ...)
+#+end_src
+
+-  docstring에 var 참조가 있는 경우 툴에서 사용할 수 있도록 `와 함께
+  쓴다. [[[#document-references][link]]]
+
+#+begin_src clojure
+;; 좋은 예
+(defn wombat
+  "Acts much like `clojure.core/identity` except when it doesn't.
+  Takes `x` as an argument and returns that. If it feels like it."
+  [x]
+  ...)
+
+;; 나쁜 예
+(defn wombat
+  "Acts much like clojure.core/identity except when it doesn't.
+  Takes `x` as an argument and returns that. If it feels like it."
+  [x]
+  ...)
+#+end_src
+
+-  docstring은 적절한 영어 구문으로 되어 있어야 한다. 그래서 문장은
+  대문자로 시작하며 적절한 부호로 마쳐야한다. 또 문장은 공백 하나로 구분
+  되어야 한다. [[[#docstring-grammar][link]]]
+
+#+begin_src clojure
+;; 좋은 예
+(def foo
+  "All sentences should end with a period (or maybe an exclamation mark).
+  And the period should be followed by a space, unless it's the last sentence.")
+
+;; 나쁜 예
+(def foo
+  "all sentences should end with a period (or maybe an exclamation mark).
+  And the period should be followed by a space, unless it's the last sentence")
+#+end_src
+
+-  docstring이 여러 줄이면 두개의 공백으로 들여쓰기한다.
+  [[[#docstring-indentation][link]]]
+
+#+begin_src clojure
+;; 좋은 예
+(ns my.ns
+  "It is actually possible to document a ns.
+  It's a nice place to describe the purpose of the namespace and maybe even
+  the overall conventions used. Note how _not_ indenting the doc string makes
+  it easier for tooling to display it correctly.")
+
+;; 나쁜 예
+(ns my.ns
+  "It is actually possible to document a ns.
+It's a nice place to describe the purpose of the namespace and maybe even
+the overall conventions used. Note how _not_ indenting the doc string makes
+it easier for tooling to display it correctly.")
+#+end_src
+
+-  doc string 앞 뒤에는 공백을 사용하지 않는다.
+  [[[#docstring-leading-trailing-whitespace][link]]]
+
+#+begin_src clojure
+;; 좋은 예
+(def foo
+  "I'm so awesome."
+  42)
+
+;; 나쁜 예
+(def silly
+  "    It's just silly to start a doc string with spaces.
+  Just as silly as it is to end it with a bunch of them.      "
+  42)
+#+end_src
+
+-  docstring을 넣을 때 (특히 폼 위에 함수에) 인자 백터 다음에 오지 않고
+  함수 이름 다음에 오도록 주의한다. 백터 다음에 오게 해도 오류가
+  발생하지 않지만 docstring에 추가되지 않고 함수의 본문에 있는 문자열로
+  인식되버린다. [[[#docstring-after-fn-name][link]]]
+
+#+begin_src clojure
+;; 좋은 예
+(defn foo
+  "docstring"
+  [x]
+  (bar x))
+
+;; 나쁜 예
+(defn foo [x]
+  "docstring"
+  (bar x))
+#+end_src
+
+** 그밖에
+:PROPERTIES:
+:CUSTOM_ID: 그밖에
+:END:
+-  가능하면 상태변경을 피하고, 함수형 방식을 사용하라.
+  [[[#be-functional][link]]]
+
+-  일관성을 지켜라. 이 가이드라인의 가지고 일관성을 유지하는 것이 좋다.
+  [[[#be-consistent][link]]]
+
+-  상식에 맞게 해라. [[[#common-sense][link]]]
+
+** 도구들
+:PROPERTIES:
+:CUSTOM_ID: 도구들
+:END:
+클로저 커뮤니티에서 만들어진 코딩스타일을 위한 몇개의 툴이 있다.
+
+- [[https://github.com/technomancy/slamhound][Slamhound]]는 기존에
+  작성된 코드에 필요한 ns를 자동으로 생성해준다.
+- [[https://github.com/jonase/kibit][kibit]]은
+  [[https://github.com/clojure/core.logic][core.logic]]에서 일반적으로
+  사용되는 함수나 매크로등의 코드 패턴을 기반으로, 정적 코드 분석을
+  해주는 툴이다.
+
+** 테스트
+:PROPERTIES:
+:CUSTOM_ID: 테스트
+:END:
+-  테스트 코드는 분리된 디렉토리에 저장한다. 보통 =src/yourproject/=
+  대신 =test/yourproject/=에 저장한다. 빌드 툴은 필요한 컨텍스트 안에서
+  이 파일들을 처리할 책임이 있다; 대부분의 템플릿은 이것을 자동으로
+  준다. [[[#test-directory-structure][link]]]
+
+-  테스트 네임스페이스는 =yourproject.something-test=과 같이 이름 붙이고
+  파일은 보통 =test/yourproject/something_test.clj=(또는 =.cljc=,
+  =.cljs=)로 만든다. [[[#test-ns-naming][link]]]
+
+- =clojure.test=를 사용할 때 =deftest=를 사용해 정의하는 테스트는
+  =something-test=로 이름을 붙인다.
+
+  #+begin_src clojure
+  ;; 좋은 예
+  (deftest something-test ...)
+
+  ;; 나쁜 예
+  (deftest something-tests ...)
+  (deftest test-something ...)
+  (deftest something ...)
+  #+end_src
+
+  [[[#test-naming][link]]]
+
+* 참여하기
+:PROPERTIES:
+:CUSTOM_ID: 참여하기
+:END:
+이 가이드는 완성된 가이드가 아니다. 클로저 코딩 스타일에 흥미를 가지고
+있는 사람들과 함께 만들고 싶다. 그래서 모든 클로저 커뮤니티에서 잘
+사용되면 좋겠다.
+
+이 문서를 고치려면, 티켓을 열거나 풀리퀘스트를 보내라. 미리 ㄱㅅㄱㅅ
+
+프로젝트에 금전적인 기부는 [[https://www.gittip.com/bbatsov][gittip]]을
+통해 할 수 있다.
+
+[[https://www.gittip.com/bbatsov][[[https://rawgithub.com/twolfson/gittip-badge/0.2.0/dist/gittip.png]]]]
+
+* 라이센스
+:PROPERTIES:
+:CUSTOM_ID: 라이센스
+:END:
+[[http://i.creativecommons.org/l/by/3.0/88x31.png]]
+[[http://creativecommons.org/licenses/by/3.0/deed.en_US][Creative
+Commons Attribution 3.0 Unported License]]에 따라 이용가능하다.
+
+* 공유합시다!
+:PROPERTIES:
+:CUSTOM_ID: 공유합시다
+:END:
+커뮤니티 기반 스타일 가이드는 알려질수록 좋다. 이 가이드를 친구나
+동료들에게 트윗하거나 공유하라. 댓글이나 의견, 제안은 가이드를 좀 더
+좋게 만들 수 있다. 자네, 더 좋은 가이드를 가지고 싶지 않은가?
+
+화이팅, [[https://twitter.com/bbatsov][Bozhidar]]
